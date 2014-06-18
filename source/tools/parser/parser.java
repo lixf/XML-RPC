@@ -30,7 +30,28 @@ public class parser {
  */
     public parser (InputStream rawInput) {
         this.rawInput = rawInput;
-        hp = new HttpParser(rawInput);
+    }
+/*!\brief For sending stuff back 
+ * \require a hashtable of results
+ */
+    public parser (Hashtable<String,String> results){
+        //TODO
+    }
+
+    public int findPort() {
+        String line;
+        int index;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(rawInput));
+        //read line by line until see Port :
+        while ((line = reader.readLine())!=null) {
+            index = line.indexOf("Port");
+            if (index < 0) {
+              index = line.indexOf(':');
+              String port = line.substring(index+1,line.length());
+              return Integer.parseInt(port);
+            }  
+        }
+        return 0;
     }
     
 /*!\brief This function parses the HTTP POST request
@@ -42,6 +63,7 @@ public class parser {
  *            Or content-type != text/xml
  */
     public void parseHTTP () throws IOException{
+        hp = new HttpParser(rawInput);
         //this call should populate everything in HttpParser
         hp.parseRequest();
         
@@ -97,5 +119,7 @@ public class parser {
     public Hashtable<String,String> getParams(){
         return params;
     }
+    
 
+    //for sending back 
 }
