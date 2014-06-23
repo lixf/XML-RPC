@@ -13,19 +13,24 @@ import java.io.*;
 import java.util.*;
 import java.text.*;
 import java.net.URLDecoder;
+import java.util.Hashtable;
+import java.util.ArrayList;
 
 public class XmlParser {
   private BufferedReader reader;
   private String method;
   //params map type to value
-  private Hashtable <String,String> params;
+  private ArrayList<Object> params;
   //don't care about version number just yet
+
+  private String fault;
+  private ArrayList<Object> result;
 
 
   public XmlParser(InputStream is) {
     reader = new BufferedReader(new InputStreamReader(is));
     method = "";
-    params = new Hashtable<String,String>();
+    params = new ArrayList<Object>();
   }
 
   //return int non-zero for error  
@@ -109,6 +114,86 @@ public class XmlParser {
   }
 
 
+  //return int non-zero for error  
+  public int parseResponse() throws IOException {
+    String initial, prms[], cmd[], temp[];
+    int ret, indexFront,indexBack, i;
+    boolean seenMethodResponse = false;
+    ret = 0;
+
+    //start parsing, skip comment on first line
+    String line = reader.readLine();
+    System.out.println("line: "+line);
+
+    while ((line = reader.readLine()) != null){
+        System.out.println("line: "+line);
+        //example <methodResponse>
+        indexFront = line.indexOf('<') + 1;
+        indexBack  = line.indexOf('>');
+
+        //empty bracket?
+        if (indexFront > indexBack) {
+            throw new IOException();
+        }
+        
+        //catch method call
+        if (line.substring(indexFront,indexBack).equals("methodResponse")){
+            if(seenMethodResponse){
+                //error malformed xml
+                return 1;
+            }
+            else {
+                //just use handler
+                ret = parseMethodResponse();
+                seenMethodResponse = true;
+            }
+        }
+        else {
+            return 1;
+        }
+    }
+    return ret;
+  }
+
+
+  private int parseMethodResponse() throws IOException{
+    int ret, indexFront,indexBack, i;
+    String line;
+    ret = 0;
+
+    //parse the next line might be fault or params
+    while ((line = reader.readLine()) != null){
+        //example <params>
+        indexFront = line.indexOf('<') + 1;
+        indexBack  = line.indexOf('>');
+
+        //empty bracket?
+        if (indexFront > indexBack) {
+            throw new IOException();
+        }
+        
+        //catch method call
+        if (line.substring(indexFront,indexBack).equals("params")){
+            //just use handler
+            ret = parseParams();
+        }
+        else if (line.substring(indexFront,indexBack).equals("fault")){
+            ret = parseFault(); //TODO
+        }
+        else if (line.substring(indexFront,indexBack).equals("/methodCall")){
+          return ret;
+        }
+        else {
+            return 1;
+        }
+    }
+    return ret;
+  }
+
+  private int parseFault() throws IOException{
+    return 0;
+  }
+
 
   private int parseParams() throws IOException{
     int ret, indexFront,indexBack, i;
@@ -183,7 +268,7 @@ public class XmlParser {
         }
         
         //put in hashtable
-        params.put(type,value);
+        params.add(value);
 
         //check and return
         line = reader.readLine();
@@ -205,8 +290,16 @@ public class XmlParser {
     return method;
   }
 
-  public Hashtable<String,String> getParams() {
+  public ArrayList<Object> getParams() {
     return params;
+  }
+
+  public String getFault(){
+    return this.fault;
+  }
+
+  public ArrayList<Object> getResult(){
+    return this.result;
   }
 
 }

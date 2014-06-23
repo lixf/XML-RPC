@@ -4,53 +4,14 @@ import java.text.*;
 import java.net.URLDecoder;
 
 public class HttpParser {
-  private static final String[][] HttpReplies = {{"100", "Continue"},
-                                                 {"101", "Switching Protocols"},
-                                                 {"200", "OK"},
-                                                 {"201", "Created"},
-                                                 {"202", "Accepted"},
-                                                 {"203", "Non-Authoritative Information"},
-                                                 {"204", "No Content"},
-                                                 {"205", "Reset Content"},
-                                                 {"206", "Partial Content"},
-                                                 {"300", "Multiple Choices"},
-                                                 {"301", "Moved Permanently"},
-                                                 {"302", "Found"},
-                                                 {"303", "See Other"},
-                                                 {"304", "Not Modified"},
-                                                 {"305", "Use Proxy"},
-                                                 {"306", "(Unused)"},
-                                                 {"307", "Temporary Redirect"},
-                                                 {"400", "Bad Request"},
-                                                 {"401", "Unauthorized"},
-                                                 {"402", "Payment Required"},
-                                                 {"403", "Forbidden"},
-                                                 {"404", "Not Found"},
-                                                 {"405", "Method Not Allowed"},
-                                                 {"406", "Not Acceptable"},
-                                                 {"407", "Proxy Authentication Required"},
-                                                 {"408", "Request Timeout"},
-                                                 {"409", "Conflict"},
-                                                 {"410", "Gone"},
-                                                 {"411", "Length Required"},
-                                                 {"412", "Precondition Failed"},
-                                                 {"413", "Request Entity Too Large"},
-                                                 {"414", "Request-URI Too Long"},
-                                                 {"415", "Unsupported Media Type"},
-                                                 {"416", "Requested Range Not Satisfiable"},
-                                                 {"417", "Expectation Failed"},
-                                                 {"500", "Internal Server Error"},
-                                                 {"501", "Not Implemented"},
-                                                 {"502", "Bad Gateway"},
-                                                 {"503", "Service Unavailable"},
-                                                 {"504", "Gateway Timeout"},
-                                                 {"505", "HTTP Version Not Supported"}};
-
   private BufferedReader reader;
   private String method, url;
   private Hashtable <String,String> headers;
   private int[] ver;
   private String content;
+  //for client side
+  private int respCode;
+  private String serverName;
 
 
   public HttpParser(InputStream is) {
@@ -62,7 +23,9 @@ public class HttpParser {
     ver = new int[2];
   }
 
+
   public int parseRequest() throws IOException {
+
     String initial, prms[], cmd[], temp[];
     int ret, idx, i;
 
@@ -86,8 +49,10 @@ public class HttpParser {
     if (cmd[2].indexOf("HTTP/") != 0) ret = 400;
     else {
         //TODO
-        ver[0] = 1;
-        ver[1] = 0;
+        int v0 = cmd[2].indexOf('/')+1;
+        int v1 = cmd[2].indexOf('/')+3;
+        ver[0] = Integer.parseInt(cmd[2].substring(v0,v0+1));
+        ver[1] = Integer.parseInt(cmd[2].substring(v1,v1+1));
     }
 
     //parse req
@@ -100,11 +65,63 @@ public class HttpParser {
       ret = 400;
     }
 
-    if (ver[0] != 1 || ver[1] != 0 || getHeader("Host") == null) {
+    if (ver[0] != 1 || (ver[1] != 0 && ver[1] != 1) || getHeader("Host") == null) {
       ret = 400;
     }
 
     return ret;
+  }
+
+  public int parseResponse() throws IOException{
+    String initial, prms[], cmd[], temp[];
+    int ret, idx, i;
+
+    ret = 200; // default is OK now
+    initial = reader.readLine();
+    if (initial == null || initial.length() == 0) return 0;
+    if (Character.isWhitespace(initial.charAt(0))) {
+      // starting whitespace, return bad response
+      return 400;
+    }
+    
+    //catch bad resp
+    cmd = initial.split("\\s");
+    if (cmd.length != 3) {
+      return 400;
+    }
+    
+    //get respCode
+    if (!cmd[1].equals("200")){
+      ret = 0;
+      this.respCode = 0;
+    }
+    else this.respCode = 200;
+    
+    if (cmd[0].indexOf("HTTP/") != 0) ret = 0;
+    else {
+        //magic
+        int v0 = cmd[0].indexOf('/')+1;
+        int v1 = cmd[0].indexOf('/')+3;
+        ver[0] = Integer.parseInt(cmd[0].substring(v0,v0+1));
+        ver[1] = Integer.parseInt(cmd[0].substring(v1,v1+1));
+    }
+
+    //parse req
+    if (cmd[2].equals("OK")) {
+      parseHeaders();
+      putContent();
+      if (headers == null) ret = 0;
+    }
+    else {
+      ret = 0;
+    }
+
+    if (ver[0] != 1 || (ver[1] != 0 && ver[1] != 1)) {
+      ret = 0;
+    }
+
+    return ret;
+
   }
 
   private void parseHeaders() throws IOException {
@@ -171,30 +188,8 @@ public class HttpParser {
     else return 0;
   }
 
-  public static String getHttpReply(int codevalue) {
-    String key, ret;
-    int i;
-
-    ret = null;
-    key = "" + codevalue;
-    for (i=0; i<HttpReplies.length; i++) {
-      if (HttpReplies[i][0].equals(key)) {
-        ret = codevalue + " " + HttpReplies[i][1];
-        break;
-      }
-    }
-
-    return ret;
+  public int getRespCode() {
+    return this.respCode;
   }
 
-  public static String getDateHeader() {
-    SimpleDateFormat format;
-    String ret;
-
-    format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
-    format.setTimeZone(TimeZone.getTimeZone("GMT"));
-    ret = "Date: " + format.format(new Date()) + " GMT";
-
-    return ret;
-  }
 }

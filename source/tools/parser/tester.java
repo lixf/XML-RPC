@@ -10,7 +10,7 @@ public class tester {
         in = new FileInputStream("../../data/small.mix");
         out = new FileOutputStream("output.txt");
          
-        parser p = new parser((InputStream)in);
+        parser p = new parser((InputStream)in,true);
         p.parseHTTP();
         p.parseXML();
 

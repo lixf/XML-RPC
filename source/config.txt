@@ -1,7 +1,7 @@
 ##This is a config file, uses <VarName> : <VarVal> setup
 ##This line is a comment line
 
-Port : 80
-serverIP : localhost
+Port :8080
+serverIP :localhost
 
 

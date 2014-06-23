@@ -6,8 +6,11 @@
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.ArrayList;
 import java.nio.charset.StandardCharsets;
 import java.io.ByteArrayInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 public class parser {
     //raw input received on socket
@@ -19,33 +22,36 @@ public class parser {
     private String userAgent;
     private String host;
     private int length;
+    private int respCode;
+    private String serverName;
     
     //for xml
     private String method;
-    private Hashtable<String,String> params;
+    private String fault;
+    private ArrayList<Object> params;
+    private ArrayList<Object> result;
 
     private String xmlContent;
 
+    //am i parsing a request?
+    private boolean request;
+
 /*!\brief Public constructor 
  */
-    public parser (InputStream rawInput) {
+    public parser (InputStream rawInput,boolean request) {
         this.rawInput = rawInput;
+        this.request = request;
     }
-/*!\brief For sending stuff back 
- * \require a hashtable of results
+/*!\brief Utilities to parse the config file
  */
-    public parser (Hashtable<String,String> results){
-        //TODO
-    }
-
-    public int findPort() {
+    public int findPort() throws IOException{
         String line;
         int index;
         BufferedReader reader = new BufferedReader(new InputStreamReader(rawInput));
         //read line by line until see Port :
         while ((line = reader.readLine())!=null) {
             index = line.indexOf("Port");
-            if (index < 0) {
+            if (index >= 0) {
               index = line.indexOf(':');
               String port = line.substring(index+1,line.length());
               return Integer.parseInt(port);
@@ -54,6 +60,22 @@ public class parser {
         return 0;
     }
     
+    public String findServerIP() throws IOException{
+        String line;
+        int index;
+        BufferedReader reader = new BufferedReader(new InputStreamReader(rawInput));
+        //read line by line until see Port :
+        while ((line = reader.readLine())!=null) {
+            index = line.indexOf("serverIP");
+            if (index >= 0) {
+              index = line.indexOf(':');
+              String serverIP = line.substring(index+1,line.length());
+              return serverIP;
+            }  
+        }
+        return "";
+    }
+
 /*!\brief This function parses the HTTP POST request
  *        and populates the private variables
  * \require parser class with rawInput initialized
@@ -64,37 +86,54 @@ public class parser {
  */
     public void parseHTTP () throws IOException{
         hp = new HttpParser(rawInput);
-        //this call should populate everything in HttpParser
-        hp.parseRequest();
-        
-        //then we populate our own class with data
-        //and prepare for parsing xml
-        version = hp.getVersion();
-        userAgent = hp.getHeader("User-Agent");
-        host = hp.getHeader("host");
-        length = Integer.parseInt(hp.getHeader("content-length"));
-        xmlContent = hp.getContent();
+        if (this.request){
+            //this call should populate everything in HttpParser
+            hp.parseRequest();
+            
+            //then we populate our own class with data
+            //and prepare for parsing xml
+            //first get the request
+            version = hp.getVersion();
+            userAgent = hp.getHeader("User-Agent");
+            host = hp.getHeader("host");
+            length = Integer.parseInt(hp.getHeader("content-length"));
+            xmlContent = hp.getContent();
+        }
+        else{
+            hp.parseResponse();
+            //then populate the responses
+            respCode = hp.getRespCode();
+            serverName = hp.getHeader("server");
+        }
     }
     
     //define helpers to return desired data
     public String getVersion(){
-        return version;
+        return this.version;
     }
 
     public String getUserAgent(){
-        return userAgent;
+        return this.userAgent;
     }
 
     public String getHost(){
-        return host;
+        return this.host;
     }
 
     public int getLength(){
-        return length;
+        return this.length;
+    }
+
+    public int getRespCode(){
+        return this.respCode;
+    }
+
+    public String getServerName(){
+        return this.serverName;
     }
 
     public String getXmlContent(){
-        return xmlContent;
+        return this.xmlContent;
     }
 
 
@@ -106,9 +145,17 @@ public class parser {
         else{
             InputStream stream = new ByteArrayInputStream(xmlContent.getBytes(StandardCharsets.UTF_8));
             XmlParser px = new XmlParser(stream);
-            px.parseRequest();
-            method = px.getMethod();
-            params = px.getParams();
+            if (this.request) {
+                px.parseRequest();
+                method = px.getMethod();
+                params = px.getParams();
+            }
+            else{
+                px.parseResponse();
+                //empty if no fault otherwise return the fault as string
+                this.fault = px.getFault();
+                this.result = px.getResult();
+            }
         }
     }
     
@@ -116,10 +163,8 @@ public class parser {
         return method;
     }
     
-    public Hashtable<String,String> getParams(){
+    public ArrayList<Object> getParams(){
         return params;
     }
-    
-
-    //for sending back 
+   
 }

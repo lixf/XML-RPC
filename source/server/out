@@ -1,0 +1,26 @@
+./xmlRpcServer.java:195: error: cannot find symbol
+        printer p = new printer();
+        ^
+  symbol:   class printer
+  location: class xmlRpcServer
+./xmlRpcServer.java:195: error: cannot find symbol
+        printer p = new printer();
+                        ^
+  symbol:   class printer
+  location: class xmlRpcServer
+./xmlRpcServer.java:198: error: cannot find symbol
+        BufferedInputReader buffedIn = new BufferedReader (new InputStreamReader(stream));
+        ^
+  symbol:   class BufferedInputReader
+  location: class xmlRpcServer
+../tools/parser/parser.java:151: error: incompatible types
+                params = px.getParams();
+                                     ^
+  required: ArrayList<Object>
+  found:    Hashtable<String,String>
+../tools/parser/parser.java:157: error: incompatible types
+                this.result = px.getResult();
+                                          ^
+  required: ArrayList<Object>
+  found:    Hashtable<String,String>
+5 errors

@@ -4,13 +4,17 @@
  *        start() is main loop, will block
  *        Only parses requests, does not know about config.txt
  */
-
-import java.io.ServerSocket;
-import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.io.*;
 import java.lang.RuntimeException;
 import java.lang.Class;
-import java.lang.relect.Constructor;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.util.Hashtable;
+import java.util.ArrayList;
+
 
 public class xmlRpcServer implements Runnable {
 
@@ -18,12 +22,13 @@ public class xmlRpcServer implements Runnable {
     private Socket cs;          //client
     private int port;
     private boolean stopped;
-    private int serial;
+    private String serial;
     private parser p;
     
     //I might need the params and the results stored in here
-    private Hashtable<String,String> params;
-    private Hashtable<String,String> results;
+    private ArrayList<Object> params;
+    private ArrayList<String> types;
+    private ArrayList<Object> result;
 
     //default constructor listens on 80, might throw error
     public xmlRpcServer() {
@@ -35,8 +40,8 @@ public class xmlRpcServer implements Runnable {
         }
         this.stopped = false;
         System.out.println("server up with port 80");
-        params = new Hashtable<String,String>();
-        results = new Hashtable<String,String>();
+        params = new ArrayList<Object>();
+        result = null;
         System.out.println("server ready");
     }
 
@@ -50,8 +55,8 @@ public class xmlRpcServer implements Runnable {
         }
         this.stopped = false;
         System.out.println("server up with port "+ port);
-        params = new Hashtable<String,String>();
-        results = new Hashtable<String,String>();
+        params = new ArrayList<Object>();
+        result = null;
         System.out.println("server ready");
     }
 
@@ -72,30 +77,31 @@ public class xmlRpcServer implements Runnable {
             //generate a log file
             long millis = System.currentTimeMillis() % 1000;
             this.serial = String.valueOf(millis);
-            String path = "../data/"+serial+".mix";
+            String path = "../data/"+serial+"_server"+".mix";
+            File log = new File(path);
             //try (with resources) get input stream
             try (
-                File log = new File(path);
                 PrintWriter save = new PrintWriter(log);
                 //get a writer
                 PrintWriter out = new PrintWriter(cs.getOutputStream(),true);
                 BufferedReader in = new BufferedReader(
                     new InputStreamReader (cs.getInputStream()));
             ) {
+                String temp;
                 //for debugging and logging, write the stream to a file
-                while(in.hasNextLine()){
-                    String temp = in.readLine();
+                while((temp = in.readLine()) != null){
                     save.println(temp);
                 }
                 System.out.println("save an request at "+path);
                 System.out.println("parsing request");
 
                 InputStream toParser = new FileInputStream(path);
-                p = new parser((InputStream)toParser);
+                p = new parser((InputStream)toParser,true);
                 p.parseHTTP();
                 p.parseXML();
                 System.out.println("finished parsing request");
 
+                this.params = p.getParams();
                 handleRequest();
                 handleSendBack();
                 //close client connection TODO
@@ -113,11 +119,16 @@ public class xmlRpcServer implements Runnable {
     public void stop() {
       //close server port and free data structures TODO
       if (cs!=null){
-        cs.close();
+        try { 
+           cs.close();
+        } catch (IOException e){
+            System.out.println("socket problem");
+        }
       }
     }
 
     //parses and handles the request
+    //uses the stub to handle the conversion of arguments
     private void handleRequest() {
       //we have parser and all its data structures
       //method should be object.method format
@@ -132,19 +143,22 @@ public class xmlRpcServer implements Runnable {
       }
 
       String objName = method.substring(0,index);
-      String methName = method.substring(index,method.length());
-
-      //assume we have this method and know about its class
-      //dynamically find class constructor
+      String methodName = method.substring(index,method.length());
+      
+      //get stub and call the stub
+      String stubName = objName + "ServerStub";
+      
       Class<?> procClass = null;
       Constructor<?> procCon = null;
+      SumServerStub H = null; //TODO
 
       //for dynamically determining the class
       //find class with string
       try {
-          procClass = Class.forName(objName);
+          procClass = Class.forName(stubName);
       } catch (ClassNotFoundException e) {
-          System.out.println("cannot find "+objName + " error: " + e);
+          //but actually need to use rpcgen
+          System.out.println("cannot find "+objName + " stub error: " + e);
           System.exit(1);
       }
 
@@ -157,11 +171,9 @@ public class xmlRpcServer implements Runnable {
       }
 
       try {
-          Object[] initArgs = new Object[1];
-          //how to pass in args?? from a hashtable TODO
-          initArgs[0] = args;
           //then how to invocate the specified method?? and put back to a hashtable
-          H = new MPHelper((MigratableProcess) procCon.newInstance(initArgs));
+          //TODO
+          H =  (SumServerStub)procCon.newInstance();
       } catch (InstantiationException e) {
           e.printStackTrace();
       } catch (IllegalArgumentException e) {
@@ -171,20 +183,58 @@ public class xmlRpcServer implements Runnable {
       } catch (IllegalAccessException e) {
           e.printStackTrace();
       }
-
-      //return the results in a hashtable
-      
-      return;
+          
+          //now pass in the arguments
+      try {
+          H.putArgs(params);
+          //and call the method
+          //this returns the xml result
+          this.result = H.execute(methodName);
+          this.types = H.getTypes();
+      } catch (Exception e){
+          handleException(e);
+      }
     }
-
-    //send back results from a hashtable
+    
+    //send back results from a object
     private void handleSendBack() {
-        pb = new parser(this.results);  //parser back
+        //convert the result to InputStream
+        printer p = new printer(this.result,false);
+        BufferedReader buffedIn = null;
+        try {
+            p.printXML(this.types);
+            String resultXML = p.printHTTP();
+            InputStream stream = new ByteArrayInputStream(resultXML.getBytes(StandardCharsets.UTF_8));
+            buffedIn = new BufferedReader (new InputStreamReader(stream));
+        } catch (IOException e){
+            System.out.println("handle back IO error");
+        }
         String path = "../data/result_"+this.serial+".mix";
-        pb.parseSendBack(path);         //saves the hashtable to a file
-        
+
         //send back ../data/result_<serial>.mix
         //get writer and wirte back a bunch 
-    }
+        //try (with resources) get input stream
+        File log = new File(path);
+        try (
+            PrintWriter save = new PrintWriter(log);
+            //get a writer
+            PrintWriter sockout = new PrintWriter(this.cs.getOutputStream(),true);
+        ) {
+            //for debugging and logging, write the stream to a file
+            String temp;
+            while((temp = buffedIn.readLine()) != null){
+                save.println(temp);
+                sockout.println(temp);
+            }
+            System.out.println("save an result at "+path);
 
+            System.out.println("finished sending back result");
+            System.out.println("request done");
+        } catch (IOException e){
+            System.out.println("save result error");
+        }
+    }
+    private void handleException(Exception e){
+        System.out.println(e);
+    }
 }
