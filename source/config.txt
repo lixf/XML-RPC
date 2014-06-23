@@ -2,6 +2,6 @@
 ##This line is a comment line
 
 Port :8080
-serverIP :localhost
+serverIP :128.2.13.161
 
 

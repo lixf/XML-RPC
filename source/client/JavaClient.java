@@ -3,6 +3,8 @@
  *
  */
 
+import java.util.ArrayList;
+import java.io.*;
 
 public class JavaClient {
  public static void main (String [] args) {
@@ -12,15 +14,19 @@ public class JavaClient {
      String serverIP = getServerIP(configPath);
      int port = getPort(configPath);
 
-     XmlRpcClient server = new XmlRpcClient(serverIP,port);
+     xmlRpcClient server = new xmlRpcClient(serverIP,port);
      
      //use for a specific functionality
-     Vector params = new Vector();
-     params.addElement(new Integer(17));
-     params.addElement(new Integer(13));
+     ArrayList<Object> params = new ArrayList<Object>();
+     ArrayList<String> types = new ArrayList<String>();
+     params.add(new Integer(17));
+     params.add(new Integer(13));
+
+     types.add("int");
+     types.add("int");
 
      //execute will cause the client to call the client stub
-     Object result = server.execute("sample.sum", params);
+     Object result = server.execute("sample.sum", params,types);
 
      //This is returned by the stub
      int sum = ((Integer) result).intValue();
@@ -31,20 +37,32 @@ public class JavaClient {
    }
   }
   
-  private int getServerIP(String path){
-    try (
+  private static String getServerIP(String path){
+    InputStream toParser = null;
+    String serverIP = "";
+    try {
         File config = new File(path);
-        InputStream toParser = new FileInputStream(path);
-        parser p = new parser((InputStream)toParser);
-        return p.findServerIP();
+        toParser = new FileInputStream(path);
+        parser p = new parser((InputStream)toParser,true);
+        serverIP = p.findServerIP();
+    } catch (IOException e){
+        System.out.println("server ip error");    
+    }
+    return serverIP;
   }
 
-  private int getPort(String path){
-    try (
+  private static int getPort(String path){
+    InputStream toParser = null;
+    int port = 0;
+    try {
         File config = new File(path);
-        InputStream toParser = new FileInputStream(path);
-        parser p = new parser((InputStream)toParser);
-        return p.findPort();
+        toParser = new FileInputStream(path);
+        parser p = new parser((InputStream)toParser,true);
+        port = p.findPort();
+    } catch (IOException e){
+        System.out.println("port error");
+    }
+    return port;
   }
 
 }
