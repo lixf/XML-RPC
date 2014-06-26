@@ -87,26 +87,31 @@ public class xmlRpcServer implements Runnable {
                 BufferedReader in = new BufferedReader(
                     new InputStreamReader (cs.getInputStream()));
             ) {
+                while (!in.ready()){}
                 String temp;
                 //for debugging and logging, write the stream to a file
-                while((temp = in.readLine()) != null){
+                while(!(temp = in.readLine()).contains("</methodCall>")){
                     save.println(temp);
+                    System.out.println(temp);
                 }
+                save.println(temp);
+                System.out.println(temp);
+                save.close(); 
                 System.out.println("save an request at "+path);
-                System.out.println("parsing request");
-
+                
+                //parse
                 InputStream toParser = new FileInputStream(path);
-                p = new parser((InputStream)toParser,true);
-                p.parseHTTP();
-                p.parseXML();
+                System.out.println("parsing request");
+                this.p = new parser(toParser,true);
+                this.p.parseHTTP();
+                this.p.parseXML();
                 System.out.println("finished parsing request");
 
                 this.params = p.getParams();
                 handleRequest();
                 handleSendBack();
                 //close client connection TODO
-                cs.close();
-
+                //cs.close();
             } catch (IOException e){
                 System.out.println("reading/Writing problem "+e);
                 return;
@@ -143,27 +148,26 @@ public class xmlRpcServer implements Runnable {
       }
 
       String objName = method.substring(0,index);
-      String methodName = method.substring(index,method.length());
+      String methodName = method.substring(index+1,method.length());
       
       //get stub and call the stub
       String stubName = objName + "ServerStub";
       
       Class<?> procClass = null;
       Constructor<?> procCon = null;
-      SumServerStub H = null; //TODO
+      SumServerStub H = null;
 
       //for dynamically determining the class
       //find class with string
       try {
           procClass = Class.forName(stubName);
       } catch (ClassNotFoundException e) {
-          //but actually need to use rpcgen
           System.out.println("cannot find "+objName + " stub error: " + e);
           System.exit(1);
       }
 
       try {
-          procCon = procClass.getConstructor(String[].class);
+          procCon = procClass.getConstructor();
       } catch (SecurityException e) {
           e.printStackTrace();
       } catch (NoSuchMethodException e) {
@@ -171,9 +175,7 @@ public class xmlRpcServer implements Runnable {
       }
 
       try {
-          //then how to invocate the specified method?? and put back to a hashtable
-          //TODO
-          H =  (SumServerStub)procCon.newInstance();
+          H = (SumServerStub)procCon.newInstance();
       } catch (InstantiationException e) {
           e.printStackTrace();
       } catch (IllegalArgumentException e) {
@@ -231,10 +233,10 @@ public class xmlRpcServer implements Runnable {
             System.out.println("finished sending back result");
             System.out.println("request done");
         } catch (IOException e){
-            System.out.println("save result error");
+            System.out.println("save result error "+e);
         }
     }
     private void handleException(Exception e){
-        System.out.println(e);
+        System.out.println("handle called in xmlServer " + e);
     }
 }

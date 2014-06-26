@@ -10,22 +10,24 @@ import java.net.Socket;
 import java.io.IOException;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.FileInputStream;
 import java.io.PrintWriter;
+import java.io.File;
 import java.lang.RuntimeException;
 import java.lang.Class;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-
+import java.lang.NullPointerException;
 
 public class xmlRpcClient {
 
-    private ServerSocket ss;    //server
     private Socket cs;          //client
     private String serverIP;
     private int port;
     private boolean stopped;
-    private int serial;
+    private String serial;
     private parser p;
     
     //I might need the params and the results stored in here
@@ -62,25 +64,62 @@ public class xmlRpcClient {
 
         //use a printer to generate the XML true for request
         printer p = new printer(params,true);
+
+        //input from server save at this path 
+        long millis = System.currentTimeMillis() % 1000;
+        this.serial = String.valueOf(millis);
+        String path = "../data/"+serial+"_response"+".mix";
+        File log = new File(path);
         
+        System.out.println("constructed new request");
         //send request to server on socket this.cs
-        try (
+        try ( 
+            PrintWriter outSocket = new PrintWriter(this.cs.getOutputStream(), true);
+            PrintWriter save = new PrintWriter(log);
             BufferedReader in = new BufferedReader(new InputStreamReader(this.cs.getInputStream()));
-            PrintWriter out = new PrintWriter(this.cs.getOutputStream(), true);
         ) {
-            p.printXML(types); 
+            System.out.println("before xml");
+            p.printXML(name,types); 
+            System.out.println("before http");
             String request = p.printHTTP();
-            out.write(request);
+            outSocket.write(request);
+            outSocket.flush();
+            System.out.println("wrote request to socket");
+            
+            //read response
+            String temp;
+            System.out.println("going to read");
+            while(!in.ready()){}
+            //for debugging and logging, write the stream to a file
+            while((temp = in.readLine()) != null){
+                System.out.println("reading");
+                save.println(temp);
+                System.out.println(temp);
+            }
+            save.close();
+            System.out.println("saved a response at "+path);
+            System.out.println("parsing response");
+
+            InputStream toParser = new FileInputStream(path);
+            this.p = new parser((InputStream)toParser,false); //this is response
+            this.p.parseHTTP();
+            this.p.parseXML();
+            System.out.println("finished parsing response");
+
+            this.results = this.p.getResult();
+            //close client connection TODO
+            //cs.close();
         } catch (IOException e){
-            System.out.println(e);
+            e.printStackTrace();
+        } catch (NullPointerException e){
+            e.printStackTrace();
         }
+
         
-        //wait for a reply
-        
+        Object ret = this.results.get(0); 
         //parse the XML reply and get a return object
-        return null;
+        System.out.println("returning from execute "+ret.toString());
+        return ret;
     }
-
-
 
 }

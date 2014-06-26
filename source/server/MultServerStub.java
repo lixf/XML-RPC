@@ -9,16 +9,16 @@ import java.lang.reflect.*;
 
 
 
-public class SumServerStub {
+public class MultServerStub {
     //copy of the actual object
-    private Sum so;
+    private Mult so;
     private ArrayList<Object> params;
     private int x;
     private int y;
 
 
-    public SumServerStub (){
-        this.so = new Sum();
+    public MultServerStub (){
+        this.so = new Mult();
     }
 
     public void putArgs(ArrayList<Object> params) throws Exception {

@@ -9,25 +9,23 @@ import java.lang.reflect.*;
 
 
 
-public class SumServerStub {
+public class FibServerStub {
     //copy of the actual object
-    private Sum so;
+    private Fib so;
     private ArrayList<Object> params;
     private int x;
-    private int y;
 
 
-    public SumServerStub (){
-        this.so = new Sum();
+    public FibServerStub (){
+        this.so = new Fib();
     }
 
     public void putArgs(ArrayList<Object> params) throws Exception {
-        if (params.size() != 2) throw new Exception("wrong num of args");
+        if (params.size() != 1) throw new Exception("wrong num of args");
         else {
             this.params = params;
             this.x = Integer.parseInt((String)params.get(0));
-            this.y = Integer.parseInt((String)params.get(1));
-            System.out.println("parsed two arguments: " + this.x);
+            System.out.println("parsed one arguments: " + this.x);
         }
     }
 
@@ -36,7 +34,7 @@ public class SumServerStub {
         Method method = null;
         ArrayList<Object> result = new ArrayList<Object>();
         try {
-            method = this.so.getClass().getDeclaredMethod(methodName, int.class, int.class);
+            method = this.so.getClass().getDeclaredMethod(methodName,int.class);
         } catch (SecurityException e) {
           System.out.println(e);
         } catch (NoSuchMethodException e) {
@@ -44,7 +42,7 @@ public class SumServerStub {
         }
 
         try {
-            result.add((Object)method.invoke(this.so,this.x,this.y));
+            result.add((Object)method.invoke(this.so,this.x));
         } catch (IllegalArgumentException e) {
           System.out.println(e);
         } catch (IllegalAccessException e) {
