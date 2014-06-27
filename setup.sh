@@ -32,9 +32,9 @@ BINARY_SOURCE=$BIN_PATH
 ## define some functions
 function makefiles {
     # Compile all source code
-    javac -d $BINARY_SOURCE $TOOLS_SOURCE/*.java
-    javac -d $BINARY_SOURCE -cp $TOOLS_SOURCE $SERVER_SOURCE
-    javac -d $BINARY_SOURCE -cp $TOOLS_SOURCE $CLIENT_SOURCE
+    javac -Xlint -d $BINARY_SOURCE $TOOLS_SOURCE/*.java
+    javac -Xlint -d $BINARY_SOURCE -cp $TOOLS_SOURCE $SERVER_SOURCE
+    javac -Xlint -d $BINARY_SOURCE -cp $TOOLS_SOURCE $CLIENT_SOURCE
     echo -e "${green}all files compiled in ./bin/${NC}"
 }
 
@@ -52,10 +52,17 @@ function runserver {
 }
 
 function runclient {
-    #run client
+    #run client with command prompt
     echo -e "${green}starting client${NC}"
+    echo -e "${green}please choose from sum/mult/fib${NC}"
+    read choice
     cd $BINARY_SOURCE
-    java JavaClientSum
+    case "$choice" in
+    sum)    java JavaClientSum; exit 0;;
+    mult)   java JavaClientMult; exit 0;;
+    fib)    java JavaClientFib; exit 0;;
+    *)      echo $choice; usage; exit 0;;
+    esac
 }
 
 function usage {

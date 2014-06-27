@@ -75,12 +75,12 @@ public class xmlRpcClient {
         //send request to server on socket this.cs
         try ( 
             PrintWriter outSocket = new PrintWriter(this.cs.getOutputStream(), true);
-            PrintWriter save = new PrintWriter(log);
             BufferedReader in = new BufferedReader(new InputStreamReader(this.cs.getInputStream()));
         ) {
-            System.out.println("before xml");
+            PrintWriter save = new PrintWriter(log);
+            System.out.println("before printing xml");
             p.printXML(name,types); 
-            System.out.println("before http");
+            System.out.println("before printing http");
             String request = p.printHTTP();
             outSocket.write(request);
             outSocket.flush();
@@ -88,27 +88,23 @@ public class xmlRpcClient {
             
             //read response
             String temp;
-            System.out.println("going to read");
+            System.out.println("going to read response");
             while(!in.ready()){}
             //for debugging and logging, write the stream to a file
             while((temp = in.readLine()) != null){
-                System.out.println("reading");
                 save.println(temp);
-                System.out.println(temp);
             }
             save.close();
             System.out.println("saved a response at "+path);
             System.out.println("parsing response");
 
             InputStream toParser = new FileInputStream(path);
-            this.p = new parser((InputStream)toParser,false); //this is response
+            this.p = new parser(toParser,false); //this is response
             this.p.parseHTTP();
             this.p.parseXML();
             System.out.println("finished parsing response");
 
             this.results = this.p.getResult();
-            //close client connection TODO
-            //cs.close();
         } catch (IOException e){
             e.printStackTrace();
         } catch (NullPointerException e){

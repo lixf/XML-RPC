@@ -164,11 +164,11 @@ public class HttpParser {
 
   public String getHeader(String key) {
     if (headers != null)
-      return (String) headers.get(key.toLowerCase());
+      return headers.get(key.toLowerCase());
     else return null;
   }
 
-  public Hashtable getHeaders() {
+  public Hashtable<String,String> getHeaders() {
     return headers;
   }
 

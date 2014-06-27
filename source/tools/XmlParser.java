@@ -46,10 +46,8 @@ public class XmlParser {
     //start parsing, skip comment on first line
     String line = reader.readLine();
     line = reader.readLine();
-    System.out.println("line: "+line);
 
     while ((line = reader.readLine()) != null){
-        System.out.println("line: "+line);
         //example <methodCall>
         indexFront = line.indexOf('<') + 1;
         indexBack  = line.indexOf('>');
@@ -85,7 +83,6 @@ public class XmlParser {
 
     //parse MethodName
     line = reader.readLine();
-    System.out.println("line: "+line);
     indexFront = line.indexOf('>') + 1;
     indexBack  = line.indexOf('/') - 1;
 
@@ -128,10 +125,8 @@ public class XmlParser {
 
     //start parsing, skip comment on first line
     String line = reader.readLine();
-    System.out.println("line: "+line);
 
     while ((line = reader.readLine()) != null){
-        System.out.println("line: "+line);
         //example <methodResponse>
         indexFront = line.indexOf('<') + 1;
         indexBack  = line.indexOf('>');
@@ -247,7 +242,6 @@ public class XmlParser {
         
         //get substring with type and value
         String sub = line.substring(indexFront,indexBack);
-        System.out.println("substring: "+sub);
         
         //get the type
         indexFront = sub.indexOf("<") + 1;
@@ -263,11 +257,9 @@ public class XmlParser {
         //get value
         String delimFront = "<"+type+">";
         String delimBack  = "</"+type+">";
-        System.out.println("delims: "+delimFront+" "+delimBack);
         indexFront = sub.indexOf(delimFront) + 1;
         indexBack  = sub.indexOf(delimBack);
         String value = sub.substring(indexFront+typelen+1,indexBack);
-        System.out.println("value: "+value);
         
         //malformed xml
         if (indexFront > indexBack) {

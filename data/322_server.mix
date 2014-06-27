@@ -1,0 +1,20 @@
+POST /RPC2 HTTP/1.0
+User-Agent: kali
+Host:
+Content-Type: text/xml
+Content-length:189
+
+
+
+<?xml version='1.0'?>
+<methodCall>
+<methodName>Sum.sum</methodName>
+<params>
+<param>
+<value><i4>17</i4></value>
+</param>
+<param>
+<value><i4>13</i4></value>
+</param>
+</params>
+</methodCall>

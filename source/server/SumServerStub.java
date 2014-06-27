@@ -44,7 +44,7 @@ public class SumServerStub {
         }
 
         try {
-            result.add((Object)method.invoke(this.so,this.x,this.y));
+            result.add(method.invoke(this.so,this.x,this.y));
         } catch (IllegalArgumentException e) {
           System.out.println(e);
         } catch (IllegalAccessException e) {

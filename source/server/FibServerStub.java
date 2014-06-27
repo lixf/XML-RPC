@@ -42,7 +42,7 @@ public class FibServerStub {
         }
 
         try {
-            result.add((Object)method.invoke(this.so,this.x));
+            result.add(method.invoke(this.so,this.x));
         } catch (IllegalArgumentException e) {
           System.out.println(e);
         } catch (IllegalAccessException e) {

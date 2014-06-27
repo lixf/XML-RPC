@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.io.*;
 import java.lang.RuntimeException;
 import java.lang.Class;
+import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +43,7 @@ public class xmlRpcServer implements Runnable {
         System.out.println("server up with port 80");
         params = new ArrayList<Object>();
         result = null;
-        System.out.println("server ready");
+        System.out.println("server ready\n");
     }
 
     //constructor with port specified by main
@@ -81,21 +82,17 @@ public class xmlRpcServer implements Runnable {
             File log = new File(path);
             //try (with resources) get input stream
             try (
-                PrintWriter save = new PrintWriter(log);
-                //get a writer
-                PrintWriter out = new PrintWriter(cs.getOutputStream(),true);
                 BufferedReader in = new BufferedReader(
                     new InputStreamReader (cs.getInputStream()));
             ) {
+                PrintWriter save = new PrintWriter(log);
                 while (!in.ready()){}
                 String temp;
                 //for debugging and logging, write the stream to a file
                 while(!(temp = in.readLine()).contains("</methodCall>")){
                     save.println(temp);
-                    System.out.println(temp);
                 }
                 save.println(temp);
-                System.out.println(temp);
                 save.close(); 
                 System.out.println("save an request at "+path);
                 
@@ -153,34 +150,17 @@ public class xmlRpcServer implements Runnable {
       //get stub and call the stub
       String stubName = objName + "ServerStub";
       
-      Class<?> procClass = null;
-      Constructor<?> procCon = null;
-      SumServerStub H = null;
-
-      //for dynamically determining the class
-      //find class with string
-      try {
-          procClass = Class.forName(stubName);
-      } catch (ClassNotFoundException e) {
-          System.out.println("cannot find "+objName + " stub error: " + e);
-          System.exit(1);
-      }
+      //Class<?> procClass = null;
+      //Constructor<?> procCon = null;
+      Object obj = null;
 
       try {
-          procCon = procClass.getConstructor();
-      } catch (SecurityException e) {
-          e.printStackTrace();
-      } catch (NoSuchMethodException e) {
-          e.printStackTrace();
-      }
-
-      try {
-          H = (SumServerStub)procCon.newInstance();
+          obj = Class.forName(stubName).newInstance();
       } catch (InstantiationException e) {
           e.printStackTrace();
       } catch (IllegalArgumentException e) {
           e.printStackTrace();
-      } catch (InvocationTargetException e) {
+      } catch (ClassNotFoundException e) {
           e.printStackTrace();
       } catch (IllegalAccessException e) {
           e.printStackTrace();
@@ -188,11 +168,19 @@ public class xmlRpcServer implements Runnable {
           
           //now pass in the arguments
       try {
-          H.putArgs(params);
+          Method meth0 = obj.getClass().getMethod("putArgs",ArrayList.class);
+          meth0.invoke(obj,params);
+
+          Method meth1 = obj.getClass().getMethod("execute",String.class);
+          this.result = (ArrayList<Object>)meth1.invoke(obj,methodName);
+          
+          Method meth2 = obj.getClass().getMethod("getTypes");
+          this.types = (ArrayList<String>)meth2.invoke(obj);
+          
           //and call the method
           //this returns the xml result
-          this.result = H.execute(methodName);
-          this.types = H.getTypes();
+          //this.result = H.execute(methodName);
+          //this.types = H.getTypes();
       } catch (Exception e){
           handleException(e);
       }
@@ -231,7 +219,7 @@ public class xmlRpcServer implements Runnable {
             System.out.println("save an result at "+path);
 
             System.out.println("finished sending back result");
-            System.out.println("request done");
+            System.out.println("request done\n\n");
         } catch (IOException e){
             System.out.println("save result error "+e);
         }

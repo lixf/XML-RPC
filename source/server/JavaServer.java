@@ -27,7 +27,7 @@ public class JavaServer {
     try {
         File config = new File(path);
         InputStream toParser = new FileInputStream(path);
-        parser p = new parser((InputStream)toParser,false);
+        parser p = new parser(toParser,false);
         port = p.findPort();
     } catch (IOException e){
         System.out.println(e);

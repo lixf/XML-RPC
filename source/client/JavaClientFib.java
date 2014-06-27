@@ -43,7 +43,7 @@ public class JavaClientFib {
     try {
         File config = new File(path);
         toParser = new FileInputStream(path);
-        parser p = new parser((InputStream)toParser,true);
+        parser p = new parser(toParser,true);
         serverIP = p.findServerIP();
     } catch (IOException e){
         System.out.println("server ip error");    
@@ -57,7 +57,7 @@ public class JavaClientFib {
     try {
         File config = new File(path);
         toParser = new FileInputStream(path);
-        parser p = new parser((InputStream)toParser,true);
+        parser p = new parser(toParser,true);
         port = p.findPort();
     } catch (IOException e){
         System.out.println("port error");
