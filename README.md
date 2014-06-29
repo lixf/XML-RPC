@@ -3,13 +3,14 @@ XML-RPC
 15440 P2 XML-RPC:
 Team Member: Xiaofan Li -- xli2
 
--------------------------------------------------------------------------
 I. Introduction:
+-------------------------------------------------------------------------
 
 This is a project for a RPC framework using XML and HTTP POST request for 
 communication.
---------------------------------------------------------------------------
+
 II. Notes to run:
+--------------------------------------------------------------------------
 
 To run the program, change directory to p2/XML-RPC and run the shell script
 ./setup.sh using bash shell. Note: bash is required!
@@ -26,8 +27,9 @@ XML format.
 
 You can see the result of the RPC call printed on screen or you can go in
 ./data/ to inspect individual .mix files. 
---------------------------------------------------------------------------
+
 III. What is required from programmer
+--------------------------------------------------------------------------
 
 The framework takes care of communication including network, parsing, 
 generating XML, HTTP, and dynamically locate the desired class/object. 
@@ -48,8 +50,9 @@ objects of type String, Integer or Boolean. Higher level data structures
 should be constructed after the primitives are received on either end of the 
 communication. Therefore, there is no reason to support higher level data types
 by default. 
---------------------------------------------------------------------------------
+
 IV. Design and runtime spec
+--------------------------------------------------------------------------------
 
 The core of the framework resides in xmlRpcServer.java and xmlRpcClient.java
 where communication takes place. 
@@ -84,8 +87,9 @@ based on the returned result and its type.
 
 The rest is easy to understand: the client get the response, parse it, cast it
 to the right type and then print on screen. Then it closes the connection. 
--------------------------------------------------------------------------------
+
 V. What I did not do (and probably should have done)
+-------------------------------------------------------------------------------
 
 1. Right now the framework does not support higher level data structures such 
    as arrays, hashtables, structs.. 
@@ -95,14 +99,16 @@ V. What I did not do (and probably should have done)
 3. Fault handling: a malicious user could crash the server. The framework does
    return a fault response under certain circumstances but the framework should
    be more robust.
---------------------------------------------------------------------------------
+
 VI. Final thoughts 
+--------------------------------------------------------------------------------
 
 Implementing RPC was really fun, while I did find java is kind of annoying 
 in both its compoiling process and its runtime. I might do it again in C 
 sometime later. Thanks for reading, if you are here. 
---------------------------------------------------------------------------------
+
 VII. Appendix
+--------------------------------------------------------------------------------
 
 Current test cases:
 1. Sum: adds two numbers. Feel free to change the arguments in JavaClientSum
